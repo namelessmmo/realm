@@ -15,7 +15,7 @@ import (
 
 type Server struct {
 	upgrader      websocket.Upgrader
-	clientHandler *client.ClientHandler
+	clientHandler *client.Handler
 }
 
 func NewServer() *Server {

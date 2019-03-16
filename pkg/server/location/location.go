@@ -1,15 +1,21 @@
 package location
 
 type Location struct {
-	x int
-	y int
+	world *World
+	x     int
+	y     int
 }
 
-func NewLocation(x, y int) *Location {
+func NewLocation(world *World, x, y int) *Location {
 	return &Location{
-		x: x,
-		y: y,
+		world: world,
+		x:     x,
+		y:     y,
 	}
+}
+
+func (loc *Location) GetWorld() *World {
+	return loc.world
 }
 
 func (loc *Location) GetX() int {

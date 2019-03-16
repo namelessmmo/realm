@@ -2,14 +2,15 @@ package client
 
 import (
 	"encoding/json"
+	"reflect"
+	"sync"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
 	"github.com/namelessmmo/realm/pkg/server/packets/outgoing"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"reflect"
-	"sync"
-	"time"
 )
 
 const (

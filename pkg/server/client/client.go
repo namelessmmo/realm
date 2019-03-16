@@ -1,14 +1,14 @@
 package client
 
 import (
-	"github.com/mitchellh/mapstructure"
 	"reflect"
 	"sync"
 	"time"
 
-	"github.com/namelessmmo/realm/pkg/server/location"
+	"github.com/mitchellh/mapstructure"
+	"github.com/namelessmmo/realm/pkg/server/packets/outgoing"
 
-	"github.com/namelessmmo/realm/pkg/server/packets"
+	"github.com/namelessmmo/realm/pkg/server/location"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -101,8 +101,8 @@ func (c *Client) Run() {
 	// send player information
 	// id, ect...
 
-	c.SetLocation(location.NewLocation(400, 400))
-	c.PacketHandler.WritePacket(&packets.PlayerInfo{PlayerID: c.ID})
+	c.SetLocation(location.NewLocation(location.WorldHandler.GetWorld("untitled"), 400, 400))
+	c.PacketHandler.WritePacket(&outgoing.PlayerInfo{PlayerID: c.ID})
 
 	// do we need to send/receive anything else?
 
@@ -165,7 +165,7 @@ func (c *Client) processMovement() {
 
 		// TODO: prevent player from walking over blocked tiles (water, buildings, ect...)
 
-		c.SetLocation(location.NewLocation(x, y))
+		c.SetLocation(location.NewLocation(loc.GetWorld(), x, y))
 		c.movement = nil
 	}
 }

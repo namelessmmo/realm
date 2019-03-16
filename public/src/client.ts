@@ -29,7 +29,7 @@ class Client {
 
     createApplication() {
         this.application = new PIXI.Application(256, 256, {
-            antialias: false,
+            antialias: true,
             transparent: false,
             resolution: 1
         });
@@ -189,6 +189,9 @@ class Client {
                         this.players.delete(player.id);
                     }
                 }
+                break;
+            case 'Ping':
+                // This should rarely if ever be used due to other packets being constantly sent
                 break;
             default:
                 console.log("invalid code: ", code);
