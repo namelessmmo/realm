@@ -8,8 +8,9 @@ export class Client {
     private loader: PIXI.loaders.Loader;
     private application: PIXI.Application;
 
-    // World
-    private world: Game.World;
+    // Worlds
+    private worlds: Map<string, Game.World>;
+    private renderedWorld: Game.World;
 
     // Players
     private players: Map<number, Game.Player>;
@@ -25,6 +26,9 @@ export class Client {
     constructor() {
         this.manifestLoader = new PIXI.loaders.Loader();
         this.loader = PIXI.loader;
+
+        this.worlds = new Map();
+
         this.players = new Map();
         this.myPlayerID = -1;
     }
@@ -67,6 +71,11 @@ export class Client {
         for (const key of Object.keys(manifest)) {
             const item = manifest[key];
             loader = loader.add(key, item);
+
+            if (key.startsWith("tilemap/")) {
+                const worldName = key.slice("tilemap/".length);
+                this.worlds.set(worldName, new Game.World(worldName));
+            }
         }
 
         this.loader = loader.load(cb);
@@ -113,9 +122,10 @@ export class Client {
         // Add canvas to the document
         document.body.appendChild(this.application.view);
 
-        // load the world
-        this.world = new Game.World("untitled");
-        this.world.load();
+        // load the worlds
+        for (const world of this.worlds.values()) {
+            world.load();
+        }
 
         // setup camera
         this.camera = new Game.Camera(this.application.renderer.width, this.application.renderer.height);
@@ -190,14 +200,16 @@ export class Client {
                         const player = this.players.get(dataPlayer.id);
                         // location has immutable fields so we need to create a new one
                         // TODO: use dataPlayerLocation.world for the name of the world
-                        player.location = new Game.Location(dataPlayerLocation.x, dataPlayerLocation.y, this.world);
+                        player.location = new Game.Location(dataPlayerLocation.x, dataPlayerLocation.y,
+                            this.worlds.get(dataPlayerLocation.world));
                         // re-set the player in the map
                         this.players.set(player.id, player);
                     } else {
                         // this is a new player
                         const player = new Game.Player(dataPlayer.id);
                         // TODO: use dataPlayerLocation.world for the name of the world
-                        player.location = new Game.Location(dataPlayerLocation.x, dataPlayerLocation.y, this.world);
+                        player.location = new Game.Location(dataPlayerLocation.x, dataPlayerLocation.y,
+                            this.worlds.get(dataPlayerLocation.world));
                         this.players.set(player.id, player);
                     }
                 }
@@ -254,21 +266,29 @@ export class Client {
 
         // Going to draw everything relative to myPlayer
         const myPlayer = this.players.get(this.myPlayerID);
-        this.camera.update(myPlayer.location); // constantly update the camera location
+        const myPlayerLocation = myPlayer.location;
+        const myPlayerWorld = myPlayerLocation.world;
+        this.camera.update(myPlayerLocation); // constantly update the camera location
 
         // render the world at the player location
-        this.world.render(this.application.stage, myPlayer.location, this.camera);
+        if (this.renderedWorld !== myPlayerWorld) {
+            if (this.renderedWorld != null) {
+                this.renderedWorld.unRender();
+            }
+            this.renderedWorld = myPlayerWorld;
+        }
+        myPlayer.location.world.render(this.application.stage, myPlayerLocation, this.camera);
 
         // TODO: render ground items here
 
         for (const pid of this.players.keys()) {
             if (pid !== this.myPlayerID) {
                 const player = this.players.get(pid);
-                player.render(this.application.stage, myPlayer.location, this.camera);
+                player.render(this.application.stage, myPlayerLocation, this.camera);
             }
         }
         // render self last so we stay on top
-        myPlayer.render(this.application.stage, myPlayer.location, this.camera);
+        myPlayer.render(this.application.stage, myPlayerLocation, this.camera);
 
         // TODO: render interface stuff here
     }

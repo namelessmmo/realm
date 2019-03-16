@@ -28,4 +28,8 @@ export class World {
 
         // TODO: render objects here (objects sync from server)
     }
+
+    public unRender() {
+        this.container.parent.removeChild(this.container);
+    }
 }

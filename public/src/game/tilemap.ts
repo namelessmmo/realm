@@ -10,7 +10,7 @@ export class Tilemap {
     public width: number;
     public height: number;
 
-    private name: string;
+    private readonly name: string;
 
     private tilesets: Map<number, Tileset>;
 
