@@ -1,8 +1,8 @@
 export class Movement {
-    up: boolean;
-    down: boolean;
-    left: boolean;
-    right: boolean;
+    public up: boolean;
+    public down: boolean;
+    public left: boolean;
+    public right: boolean;
 
     constructor() {
         this.up = false;
@@ -11,7 +11,7 @@ export class Movement {
         this.right = false;
     }
 
-    isMoving() {
+    public isMoving() {
         return this.up || this.down || this.left || this.right;
     }
 }

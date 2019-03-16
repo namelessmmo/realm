@@ -1,17 +1,17 @@
-import * as world from 'world';
+import { World } from "world";
 
 export class Location {
-    readonly x: number;
-    readonly y: number;
-    readonly world: world.World;
+    public readonly x: number;
+    public readonly y: number;
+    public readonly world: World;
 
-    constructor(x: number, y: number, world: world.World) {
+    constructor(x: number, y: number, world: World) {
         this.x = x;
         this.y = y;
         this.world = world;
     }
 
-    screenX(cameraX: number, renderX: number): number {
+    public screenX(cameraX: number, renderX: number): number {
         let screenX = renderX / 2;
 
         if (this.x < screenX || this.x > ((this.world.tilemap.width - renderX) + screenX)) {
@@ -21,7 +21,7 @@ export class Location {
         return screenX;
     }
 
-    screenY(cameraY: number, renderY: number): number {
+    public screenY(cameraY: number, renderY: number): number {
         let screenY = renderY / 2;
 
         if (this.y < screenY || this.y > ((this.world.tilemap.height - renderY) + screenY)) {

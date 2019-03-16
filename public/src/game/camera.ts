@@ -1,20 +1,19 @@
-import * as location from './location';
+import { Location } from "./location";
 
 export class Camera {
-    screenWidth: number;
-    screenHeight: number;
-
-    x: number;
-    y: number;
+    public x: number;
+    public y: number;
+    public readonly screenWidth: number;
+    public readonly screenHeight: number;
 
     constructor(screenWidth: number, screenHeight: number) {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
     }
 
-    update(location: location.Location) {
-        let centerX = this.screenWidth / 2;
-        let centerY = this.screenHeight / 2;
+    public update(location: Location) {
+        const centerX = this.screenWidth / 2;
+        const centerY = this.screenHeight / 2;
 
         let cameraX = location.x - centerX;
         let cameraY = location.y - centerY;

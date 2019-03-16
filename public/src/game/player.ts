@@ -1,21 +1,21 @@
-import * as location from './location';
-import * as camera from './camera';
-import * as PIXI from 'pixi.js';
+import * as PIXI from "pixi.js";
+import { Camera } from "./camera";
+import { Location } from "./location";
 
 export class Player {
-    id: number;
-    location: location.Location;
-    graphic: PIXI.Graphics;
+    public id: number;
+    public location: Location;
+    public graphic: PIXI.Graphics;
 
     constructor(id: number) {
         this.id = id;
     }
 
-    render(stage: PIXI.Container, relativeLocation: location.Location, cam: camera.Camera) {
+    public render(stage: PIXI.Container, relativeLocation: Location, camera: Camera) {
         if (!this.graphic) {
             // eventually this will be the player gfx instead of just a circle
             // probably with body part ids, equipment ids, ect..
-            let circle = new PIXI.Graphics();
+            const circle = new PIXI.Graphics();
             // if (player.id === myPlayerID) {
             //     circle.beginFill(0x0000FF);
             // } else {
@@ -28,43 +28,44 @@ export class Player {
             stage.addChild(this.graphic);
         }
 
-        let centerX = cam.screenWidth / 2;
-        let centerY = cam.screenHeight / 2;
+        const centerX = camera.screenWidth / 2;
+        const centerY = camera.screenHeight / 2;
 
-        // relativeLocation is the controlling playe
+        // relativeLocation is the controlling player
 
-        let screenX = this.location.screenX(cam.x, cam.screenWidth);
-        let screenY = this.location.screenY(cam.y, cam.screenHeight);
+        let screenX = this.location.screenX(camera.x, camera.screenWidth);
+        let screenY = this.location.screenY(camera.y, camera.screenHeight);
 
-        let relX = this.location.x - relativeLocation.x;
-        let relY = this.location.y - relativeLocation.y;
+        const relX = this.location.x - relativeLocation.x;
+        const relY = this.location.y - relativeLocation.y;
 
-        if (relX != 0) {
-            if (screenX == centerX) {
+        if (relX !== 0) {
+            if (screenX === centerX) {
                 let myCameraX = this.location.x - centerX;
-                myCameraX = Math.max(0, Math.min(myCameraX, (this.location.world.tilemap.width - cam.screenWidth)));
-                let myScreenX = relativeLocation.screenX(myCameraX, cam.screenWidth);
+                myCameraX = Math.max(0, Math.min(myCameraX, (this.location.world.tilemap.width - camera.screenWidth)));
+                const myScreenX = relativeLocation.screenX(myCameraX, camera.screenWidth);
                 screenX = centerX + (this.location.x - centerX);
-                if (myScreenX == centerX) {
+                if (myScreenX === centerX) {
                     screenX -= (relativeLocation.x - centerX);
                 }
                 if (myScreenX > centerX) {
-                    screenX = this.location.x - cam.x;
+                    screenX = this.location.x - camera.x;
                 }
             }
         }
 
-        if (relY != 0) {
-            if (screenY == centerY) {
+        if (relY !== 0) {
+            if (screenY === centerY) {
                 let myCameraY = this.location.y - centerY;
-                myCameraY = Math.max(0, Math.min(myCameraY, (this.location.world.tilemap.height - cam.screenHeight)));
-                let myScreenY = relativeLocation.screenY(myCameraY, cam.screenHeight);
+                myCameraY = Math.max(0, Math.min(myCameraY,
+                    (this.location.world.tilemap.height - camera.screenHeight)));
+                const myScreenY = relativeLocation.screenY(myCameraY, camera.screenHeight);
                 screenY = centerY + (this.location.y - centerY);
-                if (myScreenY == centerY) {
+                if (myScreenY === centerY) {
                     screenY -= (relativeLocation.y - centerY);
                 }
                 if (myScreenY > centerY) {
-                    screenY = this.location.y - cam.y;
+                    screenY = this.location.y - camera.y;
                 }
             }
         }
@@ -73,7 +74,7 @@ export class Player {
         this.graphic.y = screenY;
     }
 
-    unRender(stage: PIXI.Container) {
+    public unRender(stage: PIXI.Container) {
         stage.removeChild(this.graphic);
     }
 }

@@ -174,7 +174,7 @@ func (handler *Handler) state() {
 				if clientLoc.GetX() > bottomRight.GetX() || clientLoc.GetY() > bottomRight.GetY() {
 					continue
 				}
-				statePacket.Players = append(statePacket.Players, outgoing.PlayerState{ID: client.ID, X: clientLoc.GetX(), Y: clientLoc.GetY()})
+				statePacket.Players = append(statePacket.Players, outgoing.PlayerState{ID: client.ID, Location: outgoing.PlayerStateLocation{World: clientLoc.GetWorld().Name, X: clientLoc.GetX(), Y: clientLoc.GetY()}})
 			}
 
 			myClient.PacketHandler.WritePacket(statePacket)

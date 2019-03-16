@@ -1,11 +1,11 @@
-import * as PIXI from 'pixi.js';
-import * as location from './location';
-import * as tilemap from './tilemap';
-import * as camera from './camera';
+import * as PIXI from "pixi.js";
+import * as camera from "./camera";
+import * as location from "./location";
+import * as tilemap from "./tilemap";
 
 export class World {
-    container: PIXI.Container;
-    tilemap: tilemap.Tilemap;
+    public readonly tilemap: tilemap.Tilemap;
+    private readonly container: PIXI.Container;
 
     constructor(tileMapName: string) {
         this.container = new PIXI.Container();
@@ -13,12 +13,12 @@ export class World {
         this.tilemap = new tilemap.Tilemap(tileMapName);
     }
 
-    load() {
+    public load() {
         this.tilemap.load();
     }
 
-    render(stage: PIXI.Container, location: location.Location, cam: camera.Camera) {
-        this.tilemap.render(this.container, location, cam);
+    public render(stage: PIXI.Container, loc: location.Location, cam: camera.Camera) {
+        this.tilemap.render(this.container, loc, cam);
         try {
             // if the world is already added to the stage don't add it again
             stage.getChildIndex(this.container);
