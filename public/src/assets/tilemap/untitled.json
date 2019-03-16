@@ -1,13 +1,6 @@
 {
   "height": 100,
   "infinite": false,
-  "properties": [
-    {
-      "name": "name",
-      "type": "string",
-      "value": "untitled"
-    }
-  ],
   "layers": [
     {
       "data": [

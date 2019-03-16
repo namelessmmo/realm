@@ -4,6 +4,7 @@ import * as Game from "./game";
 export class Client {
 
     // PIXI Stuff
+    private manifestLoader: PIXI.loaders.Loader;
     private loader: PIXI.loaders.Loader;
     private application: PIXI.Application;
 
@@ -22,6 +23,7 @@ export class Client {
     private movement: Game.Movement;
 
     constructor() {
+        this.manifestLoader = new PIXI.loaders.Loader();
         this.loader = PIXI.loader;
         this.players = new Map();
         this.myPlayerID = -1;
@@ -31,8 +33,10 @@ export class Client {
         this.createApplication();
 
         const that = this;
-        this.loadAssets(() => {
-            that.start();
+        this.loadManifest(() => { // load the manifest
+            that.loadAssets(() => { // once it's loaded load all the other assets
+                that.start();
+            });
         });
     }
 
@@ -50,11 +54,22 @@ export class Client {
         this.application.renderer.resize(window.innerWidth, window.innerHeight);
     }
 
-    private loadAssets(cb: () => void) {
-        this.loader
-            .add("tilemapUntitled", "assets/tilemap/untitled.json")
-            .add("imgtilesheet", "assets/img/tilesheet.png")
+    private loadManifest(cb: () => void) {
+        this.manifestLoader
+            .add("manifest", "manifest.json")
             .load(cb);
+    }
+
+    private loadAssets(cb: () => void) {
+        let loader = this.loader;
+        const manifest = this.manifestLoader.resources.manifest.data;
+
+        for (const key of Object.keys(manifest)) {
+            const item = manifest[key];
+            loader = loader.add(key, item);
+        }
+
+        this.loader = loader.load(cb);
     }
 
     private setupGameKeyboard() { // This will get giant when we add more keybinds so we may want to change this
@@ -99,7 +114,7 @@ export class Client {
         document.body.appendChild(this.application.view);
 
         // load the world
-        this.world = new Game.World("Untitled");
+        this.world = new Game.World("untitled");
         this.world.load();
 
         // setup camera

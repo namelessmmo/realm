@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -41,18 +43,7 @@ func (h *handler) loadWorlds() {
 		tilemap := &Tilemap{}
 		_ = json.Unmarshal(tilemapData, tilemap)
 
-		var name string
-		for _, prop := range tilemap.Properties {
-			if prop.Name == "name" {
-				name = prop.Value.(string)
-				break
-			}
-		}
-
-		if len(name) == 0 {
-			logrus.Fatalf("Tilemap %s does not have a name property set %v", f.Name(), tilemap)
-		}
-
+		name := strings.TrimSuffix(f.Name(), filepath.Ext(f.Name()))
 		if _, ok := h.worlds[name]; ok {
 			logrus.Fatalf("Tilemap %s has the same name as another tilemap", f.Name())
 		}

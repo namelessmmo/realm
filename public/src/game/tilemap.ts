@@ -28,7 +28,7 @@ export class Tilemap {
     }
 
     public load() {
-        const tilemapData = PIXI.loader.resources["tilemap" + this.name].data;
+        const tilemapData = PIXI.loader.resources[`tilemap/${this.name}`].data;
 
         this.tileWidth = tilemapData.tilewidth;
         this.tileHeight = tilemapData.tileheight;
@@ -39,7 +39,7 @@ export class Tilemap {
         // collect all the tilesets
         for (const tileset of tilemapData.tilesets) {
             const firstGID = tileset.firstgid;
-            const texture = PIXI.utils.TextureCache["img" + tileset.name];
+            const texture = PIXI.utils.TextureCache[`img/tilemap-${this.name}-${tileset.name}`];
             this.tilesets.set(firstGID, new Tileset(tileset.columns, texture));
         }
 

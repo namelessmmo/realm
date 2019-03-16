@@ -5,7 +5,7 @@ var HtmlWebpackPlugin = require('html-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 var HardSourceWebpackPlugin = require('hard-source-webpack-plugin');
 var LiveReloadPlugin = require('webpack-livereload-plugin');
-const FileManagerPlugin = require('filemanager-webpack-plugin');
+const WebpackAssetsManifest = require('webpack-assets-manifest');
 const path = require('path');
 
 var distDir = path.resolve(__dirname, 'public', 'dist');
@@ -13,7 +13,10 @@ var distDir = path.resolve(__dirname, 'public', 'dist');
 module.exports = {
   // Entry point : first executed file
   // This may be an array. It will result in many output files.
-  entry: './public/src/main.ts',
+  entry: {
+    assets: './public/src/assets.js',
+    main: './public/src/main.ts',
+  },
 
   // What files webpack will manage
   resolve: {
@@ -28,7 +31,7 @@ module.exports = {
   // Configure output folder and file
   output: {
     path: distDir,
-    filename: '[name].js',
+    filename: '[name]-[hash].js',
   },
   optimization: {
     runtimeChunk: 'single',
@@ -48,7 +51,32 @@ module.exports = {
       {
         test: /\.tsx?$/,
         loader: 'ts-loader'
-      }
+      },
+      {
+        test: /\.(png|svg|jpg|gif)$/,
+        loader: 'file-loader',
+        options: {
+          outputPath: (url, resourcePath, context) => {
+            const publicPrefix = "public/src/";
+            let relativePath = path.relative(context, resourcePath).slice(publicPrefix.length);
+            relativePath = relativePath.substring(0, relativePath.lastIndexOf("/"));
+            return `${relativePath}/${url}`
+          },
+        }
+      },
+      {
+        type: 'javascript/auto', // prevents parsing json files
+        test: /\.json$/,
+        loader: 'file-loader',
+        options: {
+          outputPath: (url, resourcePath, context) => {
+            const publicPrefix = "public/src/";
+            let relativePath = path.relative(context, resourcePath).slice(publicPrefix.length);
+            relativePath = relativePath.substring(0, relativePath.lastIndexOf("/"));
+            return `${relativePath}/${url}`
+          },
+        }
+      },
     ]
   },
 
@@ -59,14 +87,31 @@ module.exports = {
       template: 'public/src/index.html'
     }),
     new HardSourceWebpackPlugin(),
+    new HardSourceWebpackPlugin.ExcludeModulePlugin([
+      {
+        test: /assets\/.*/
+      },
+      {
+        test: /manifest.json/
+      }
+    ]),
     new LiveReloadPlugin({
       appendScriptTag: true
     }),
-    new FileManagerPlugin({
-      onEnd: {
-        copy: [
-          { source: 'public/src/assets', destination: distDir+"/assets"}
-        ]
+    new WebpackAssetsManifest({
+      customize(entry, original) {
+
+        if (entry.key.endsWith(".js")) {
+          // only include actual assets (images, ect...)
+          return false
+        }
+
+        const assetsPrefix = "assets/";
+
+        return {
+          key: entry.key.slice(assetsPrefix.length).split('.').slice(0, -1).join('.'),
+          value: original.value
+        }
       }
     }),
   ]
