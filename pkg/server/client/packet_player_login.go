@@ -1,12 +1,11 @@
 package client
 
 type PlayerLogin struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Screen   struct {
-		Width  int `json:"width"`
-		Height int `json:"height"`
-	} `json:"screen"`
+	AccessToken string `mapstructure:"access_token"`
+	Screen      struct {
+		Width  int `mapstructure:"width"`
+		Height int `mapstructure:"height"`
+	} `mapstructure:"screen"`
 }
 
 func (packet *PlayerLogin) Handle(client *Client) error {

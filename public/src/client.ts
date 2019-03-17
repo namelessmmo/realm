@@ -1,3 +1,4 @@
+import * as Cookies from "js-cookie";
 import * as PIXI from "pixi.js";
 import * as Game from "./game";
 
@@ -134,13 +135,26 @@ export class Client {
         this.application.ticker.add((delta) => this.gameLoop(delta));
         this.application.ticker.add((delta) => this.renderLoop(delta));
 
-        // Connect to the server
-        // TODO: ask client for username and password
-        // this probably should be moved someplace else
-        this.connect("", "");
+        // TODO: instead of console logging we need to have a loading UI or something
+        // load auth cookie
+        const cookie = Cookies.get("namelessmmo_auth-session");
+        const cookieData = JSON.parse(cookie);
+        const authData = cookieData.authenticated;
+        if (authData.hasOwnProperty("access_token") === false) {
+            console.log("not logged in");
+            return;
+        }
+
+        if (authData.expires_at < Date.now()) {
+            console.log("token expired");
+            return;
+        }
+        const accessToken = authData.access_token;
+
+        this.connect(accessToken);
     }
 
-    private connect(username: string, password: string) {
+    private connect(accessToken: string) {
         const loc = window.location;
         let newUri;
         if (loc.protocol === "https:") {
@@ -158,6 +172,7 @@ export class Client {
             const loginData = JSON.stringify({
                 code: "PlayerLogin",
                 data: {
+                    access_token: accessToken,
                     screen: {
                         height: that.application.renderer.height,
                         width: that.application.renderer.width,

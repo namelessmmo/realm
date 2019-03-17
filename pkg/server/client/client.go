@@ -1,11 +1,14 @@
 package client
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/mitchellh/mapstructure"
+
 	"github.com/namelessmmo/realm/pkg/server/packets/outgoing"
 
 	"github.com/namelessmmo/realm/pkg/server/location"
@@ -24,8 +27,10 @@ type Movement struct {
 
 type Client struct {
 	ID          int
+	Username    string
 	Initialized bool
-	location    *location.Location
+
+	location *location.Location
 
 	Camera       *Camera
 	ScreenWidth  int
@@ -34,12 +39,13 @@ type Client struct {
 	Disconnected bool
 
 	PacketHandler *PacketHandler
+	clientHandler *Handler
 
 	movementLock sync.Mutex
 	movement     *Movement
 }
 
-func NewClient(connection *websocket.Conn, id int) *Client {
+func NewClient(connection *websocket.Conn, id int, handler *Handler) *Client {
 	return &Client{
 		ID:          id,
 		Initialized: false,
@@ -47,6 +53,7 @@ func NewClient(connection *websocket.Conn, id int) *Client {
 		Disconnected: false,
 
 		PacketHandler: NewPacketHandler(connection),
+		clientHandler: handler,
 	}
 }
 
@@ -90,7 +97,30 @@ func (c *Client) Run() {
 		return
 	}
 
-	// TODO: validate username and password
+	token, err := jwt.ParseWithClaims(playerLogin.AccessToken, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return []byte(c.clientHandler.HMACString), nil
+	})
+	if err != nil {
+		logrus.Errorf("Error parsing token %s", err.Error())
+		disconnectMessage = "Error parsing token"
+		return
+	}
+
+	c.Username = token.Claims.(*jwt.StandardClaims).Subject
+	logrus.Infof("Username: %s", c.Username)
+	if c.clientHandler.GetClientByUsername(c.Username).ID != c.ID {
+		logrus.Infof("player is already logged in")
+		disconnectMessage = "Already logged into this server"
+		return
+	}
+
+	// TODO: eventually client will select their character before the rest of this takes place
 
 	c.ScreenWidth = playerLogin.Screen.Width
 	c.ScreenHeight = playerLogin.Screen.Height

@@ -1,10 +1,10 @@
 package client
 
 type PlayerMove struct {
-	Up    bool `json:"up"`
-	Down  bool `json:"down"`
-	Left  bool `json:"left"`
-	Right bool `json:"right"`
+	Up    bool `mapstructure:"up"`
+	Down  bool `mapstructure:"down"`
+	Left  bool `mapstructure:"left"`
+	Right bool `mapstructure:"right"`
 }
 
 func (packet *PlayerMove) Handle(client *Client) error {

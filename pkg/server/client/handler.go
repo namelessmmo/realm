@@ -21,14 +21,29 @@ const MaxClients = 100
 const tickRate = (1000 / 60) * time.Millisecond
 
 type Handler struct {
+	HMACString string
+
 	clientsLock sync.Mutex
 	clients     []*Client
 }
 
-func NewClientHandler() *Handler {
+func NewClientHandler(hmacString string) *Handler {
 	return &Handler{
-		clients: make([]*Client, MaxClients),
+		HMACString: hmacString,
+		clients:    make([]*Client, MaxClients),
 	}
+}
+
+func (handler *Handler) GetClientByUsername(username string) *Client {
+	for _, client := range handler.clients {
+		if client == nil {
+			continue
+		}
+		if client.Username == username {
+			return client
+		}
+	}
+	return nil
 }
 
 func (handler *Handler) addClient(conn *websocket.Conn) {
@@ -53,7 +68,7 @@ func (handler *Handler) addClient(conn *websocket.Conn) {
 	}
 
 	// Create the client
-	client := NewClient(conn, id)
+	client := NewClient(conn, id, handler)
 
 	// Set close handlers
 	conn.SetCloseHandler(nil)           // set a nil close handler

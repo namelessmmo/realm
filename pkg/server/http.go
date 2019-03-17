@@ -1,6 +1,7 @@
 package server
 
 import (
+	"flag"
 	"net/http"
 
 	"github.com/gin-contrib/static"
@@ -24,17 +25,24 @@ func NewServer() *Server {
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 		},
-		clientHandler: client.NewClientHandler(),
 	}
 }
 
 func (server *Server) Run() {
-	server.clientHandler.Run()
+	hmacString := flag.String("hmac-auth-string", "", "The HMAC String used to sign auth tokens")
+	flag.Parse()
 
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
 		FullTimestamp: true,
 	})
+
+	if len(*hmacString) == 0 {
+		logrus.Fatalf("hmac-auth-string is required")
+	}
+
+	server.clientHandler = client.NewClientHandler(*hmacString)
+	server.clientHandler.Run()
 
 	r := gin.Default()
 
