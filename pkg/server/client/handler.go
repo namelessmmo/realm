@@ -2,12 +2,12 @@ package client
 
 import (
 	"net/http"
+	"runtime"
 	"sync"
 	"time"
 
 	"github.com/namelessmmo/realm/pkg/server/location"
 	"github.com/namelessmmo/realm/pkg/server/packets/outgoing"
-
 	"github.com/pkg/errors"
 
 	"github.com/gorilla/websocket"
@@ -123,6 +123,10 @@ func (handler *Handler) process() {
 func (handler *Handler) packets() {
 	for {
 		// Process outgoing packets for clients
+
+		// Process outgoing packets as fast as we can
+		// things will only write if there is stuff in the buffer
+		// or a ping
 		for _, client := range handler.clients {
 			if client == nil {
 				continue
@@ -133,9 +137,9 @@ func (handler *Handler) packets() {
 			}
 		}
 
-		// Process outgoing packets as fast as we can
-		// things will only write if there is stuff in the buffer
-		// or a ping
+		// This is considered a "tight loop" when there is nothing to process
+		// https://github.com/golang/go/issues/29493
+		runtime.Gosched()
 	}
 }
 

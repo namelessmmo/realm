@@ -3,6 +3,7 @@ package client
 import (
 	"net/http"
 
+	"github.com/namelessmmo/realm/pkg/server/packets/outgoing"
 	"github.com/pkg/errors"
 )
 
@@ -22,6 +23,12 @@ func (packet *DoneLoading) Handle(client *Client) error {
 				client.Disconnect(http.StatusInternalServerError, "Error loading character")
 				return
 			}
+
+			client.PacketHandler.WritePacket(&outgoing.WorldData{
+				Name:    character.location.GetWorld().Name,
+				Tilemap: character.location.GetWorld().Tilemap,
+			})
+
 			client.Character = character
 		}()
 	default:

@@ -3,30 +3,30 @@ package location
 type World struct {
 	Name string
 
-	tilemap *Tilemap
+	Tilemap *Tilemap
 }
 
 func newWorld(name string, tilemap *Tilemap) *World {
 	return &World{
 		Name:    name,
-		tilemap: tilemap,
+		Tilemap: tilemap,
 	}
 }
 
 func (world *World) GetWidth() int {
-	return world.tilemap.Width * world.tilemap.TileWidth
+	return world.Tilemap.Width * world.Tilemap.TileWidth
 }
 
 func (world *World) GetHeight() int {
-	return world.tilemap.Height * world.tilemap.TileHeight
+	return world.Tilemap.Height * world.Tilemap.TileHeight
 }
 
 func (world *World) GetTileWidth() int {
-	return world.tilemap.TileWidth
+	return world.Tilemap.TileWidth
 }
 
 func (world *World) GetTileHeight() int {
-	return world.tilemap.TileHeight
+	return world.Tilemap.TileHeight
 }
 
 type Tilemap struct {
@@ -39,9 +39,19 @@ type Tilemap struct {
 		Value interface{} `json:"value"`
 	} `json:"properties"`
 
-	Layers struct {
-		Data []int `json:"data"`
+	Layers []struct {
+		Data   []int  `json:"data"`
+		Height int    `json:"height"`
+		Width  int    `json:"width"`
+		Type   string `json:"type"`
 	} `json:"layers"`
+
+	Tilesets []struct {
+		Columns  int    `json:"columns"`
+		FirstGID int    `json:"firstgid"`
+		Image    string `json:"image"`
+		Name     string `json:"name"`
+	} `json:"tilesets"`
 
 	TileHeight int `json:"tileheight"`
 	TileWidth  int `json:"tilewidth"`

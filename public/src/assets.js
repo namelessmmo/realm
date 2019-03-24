@@ -7,8 +7,6 @@ const characterSelectionInterface2 = require("./assets/scenes/character_selectio
 // Play Scene
 import playImgTilemapUntitledTilesheet from './assets/scenes/play/img/tilemap-untitled-tilesheet.png';
 
-const playTilemapUntitled = require('./assets/scenes/play/tilemap/untitled.json');
-
 
 // We need to "use" the assets otherwise webpack won't do it's magic
 const assets = [
@@ -19,8 +17,7 @@ const assets = [
   characterSelectionInterface2,
 
   // Play Scene
-  playImgTilemapUntitledTilesheet,
-  playTilemapUntitled
+  playImgTilemapUntitledTilesheet
 ];
 
 console.log("Number of assets loaded: " + assets.length);

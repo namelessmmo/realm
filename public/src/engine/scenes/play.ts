@@ -10,7 +10,7 @@ export class Play extends Scene {
 
     private readonly playerID: number;
 
-    private worlds: Map<string, World>;
+    private world: World;
     private renderedWorld: World;
     private localCharacters: Map<number, Character>;
     private camera: Camera;
@@ -20,19 +20,12 @@ export class Play extends Scene {
         super("play");
 
         this.playerID = playerID;
-
-        this.worlds = new Map();
         this.localCharacters = new Map();
     }
 
     public _load(cb: () => void): void {
         for (const key of Array.from(this.manifest.keys())) {
             this.loader.add(key, this.manifest.get(key));
-
-            if (key.startsWith("tilemap/")) {
-                const worldName = key.slice("tilemap/".length);
-                this.worlds.set(worldName, new World(worldName, this.loader));
-            }
         }
 
         this.loader.load(cb);
@@ -44,6 +37,10 @@ export class Play extends Scene {
 
     public processPackets(code: string, data: any): void {
         switch (code) {
+            case "WorldData":
+                this.world = new World(data.name, data.tilemap, this.loader);
+                this.world.load();
+                break;
             case "LocalCharacterState":
                 const dataCharacters = data.characters;
                 const dataCharacterIDs = [];
@@ -53,14 +50,12 @@ export class Play extends Scene {
 
                     if (this.localCharacters.has(dataCharacter.player_id)) {
                         const character = this.localCharacters.get(dataCharacter.player_id);
-                        character.location = new Location(dataCharacterLocation.x, dataCharacterLocation.y,
-                            this.worlds.get(dataCharacterLocation.world));
+                        character.location = new Location(dataCharacterLocation.x, dataCharacterLocation.y, this.world);
 
                         this.localCharacters.set(character.playerID, character);
                     } else {
                         const character = new Character(dataCharacter.player_id, dataCharacter.id);
-                        character.location = new Location(dataCharacterLocation.x, dataCharacterLocation.y,
-                            this.worlds.get(dataCharacterLocation.world));
+                        character.location = new Location(dataCharacterLocation.x, dataCharacterLocation.y, this.world);
                         this.localCharacters.set(character.playerID, character);
                     }
                 }
@@ -173,9 +168,6 @@ export class Play extends Scene {
     }
 
     protected setup(): void {
-        for (const world of this.worlds.values()) {
-            world.load();
-        }
         this.movement = new Movement();
         this.setupGameKeyboard();
         this.socket.send(JSON.stringify({

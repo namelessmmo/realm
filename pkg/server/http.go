@@ -46,7 +46,7 @@ func (server *Server) Run() {
 
 	r := gin.Default()
 
-	r.Use(static.Serve("/", static.LocalFile("./public/dist", true)))
+	r.Use(static.Serve("/", static.LocalFile("./public/dist", false)))
 
 	r.GET("/ws", func(context *gin.Context) {
 		server.handleWebSocket(context)

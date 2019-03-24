@@ -4,13 +4,16 @@ import * as location from "./location";
 import * as tilemap from "./tilemap";
 
 export class World {
+
+    public readonly name: string;
     public readonly tilemap: tilemap.Tilemap;
     private readonly container: PIXI.Container;
 
-    constructor(tileMapName: string, loader: PIXI.loaders.Loader) {
+    constructor(name: string, tilemapData: any, loader: PIXI.loaders.Loader) {
+        this.name = name;
         this.container = new PIXI.Container();
 
-        this.tilemap = new tilemap.Tilemap(tileMapName, loader);
+        this.tilemap = new tilemap.Tilemap(name, tilemapData, loader);
     }
 
     public load() {
