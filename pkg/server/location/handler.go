@@ -28,7 +28,7 @@ func (h *handler) GetWorld(name string) *World {
 
 func (h *handler) loadWorlds() {
 	cwd, _ := os.Getwd()
-	tilemapDir := path.Join(cwd, "public", "src", "assets", "tilemap")
+	tilemapDir := path.Join(cwd, "public", "src", "assets", "scenes", "play", "tilemap")
 	files, err := ioutil.ReadDir(tilemapDir)
 	if err != nil {
 		logrus.Fatalf("Error reading tilemap directory %s", err.Error())

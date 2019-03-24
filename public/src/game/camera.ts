@@ -12,6 +12,7 @@ export class Camera {
     }
 
     public update(location: Location) {
+
         const centerX = this.screenWidth / 2;
         const centerY = this.screenHeight / 2;
 

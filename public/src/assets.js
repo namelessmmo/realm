@@ -1,15 +1,26 @@
-// images
-import imgTilesheet from './assets/img/tilemap-untitled-tilesheet.png';
+// Load Scene
+const loadInterface1 = require("./assets/scenes/load/interface/1.hbs");
 
-// tilemaps
-const tilemapUntitled = require('./assets/tilemap/untitled.json');
+// Character Selection Scene
+const characterSelectionInterface2 = require("./assets/scenes/character_selection/interface/2.hbs");
 
+// Play Scene
+import playImgTilemapUntitledTilesheet from './assets/scenes/play/img/tilemap-untitled-tilesheet.png';
+
+const playTilemapUntitled = require('./assets/scenes/play/tilemap/untitled.json');
+
+
+// We need to "use" the assets otherwise webpack won't do it's magic
 const assets = [
-  // images
-  imgTilesheet,
+  // Load Scene
+  loadInterface1,
 
-  // tilemaps
-  tilemapUntitled
+  // Character Selection Scene
+  characterSelectionInterface2,
+
+  // Play Scene
+  playImgTilemapUntitledTilesheet,
+  playTilemapUntitled
 ];
 
 console.log("Number of assets loaded: " + assets.length);

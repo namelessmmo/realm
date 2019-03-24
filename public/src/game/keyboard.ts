@@ -5,7 +5,10 @@ export class Keyboard {
     private isDown: boolean;
     private isUp: boolean;
 
-    constructor(keyCode: string) {
+    private readonly keyDown: (event: KeyboardEvent) => void;
+    private readonly keyUp: (event: KeyboardEvent) => void;
+
+    public constructor(keyCode: string) {
         this.keyCode = keyCode;
 
         this.isDown = false;
@@ -14,8 +17,16 @@ export class Keyboard {
         this.press = null;
         this.release = null;
 
-        window.addEventListener("keydown", (event) => this.downHandler(event), false);
-        window.addEventListener("keyup", (event) => this.upHandler(event), false);
+        this.keyDown = (event: KeyboardEvent) => this.downHandler(event);
+        this.keyUp = (event: KeyboardEvent) => this.upHandler(event);
+
+        window.addEventListener("keydown", this.keyDown, false);
+        window.addEventListener("keyup", this.keyUp, false);
+    }
+
+    public destroy() {
+        window.removeEventListener("keydown", this.keyDown, false);
+        window.removeEventListener("keyup", this.keyUp, false);
     }
 
     private downHandler(event: KeyboardEvent) {

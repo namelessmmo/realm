@@ -1,0 +1,43 @@
+{{!-- Loading box interface --}}
+<div id="interface-1">
+    <style>
+        .position {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .window {
+            width: 47vw;
+            height: 10.5vh;
+            border-radius: 1.5vmin;
+            border-style: solid;
+            border-color: #33271c;
+            border-width: 0.5vmin;
+            position: relative;
+            background-color: #ffcc93;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .window > div {
+            width: calc(100% - 1vmin);
+            height: calc(100% - 1vmin);
+            background-color: #ffc482;
+            position: absolute;
+            border-radius: 0.5vmin;
+        }
+    </style>
+
+    <div class="position">
+        <div class="window">
+            <div>
+                <div style="position: absolute;left:50%;top:50%;transform: translate(-50%,-50%);font-size: 2.5vh;text-align: center;width: 100%">
+                    <p>{{code}}: {{message}}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

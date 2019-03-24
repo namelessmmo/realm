@@ -1,45 +1,31 @@
 import * as Cookies from "js-cookie";
 import * as PIXI from "pixi.js";
-import * as Game from "./game";
+import { SceneManager } from "./engine/scene_manager";
 
 export class Client {
 
     // PIXI Stuff
-    private manifestLoader: PIXI.loaders.Loader;
     private loader: PIXI.loaders.Loader;
     private application: PIXI.Application;
 
-    // Worlds
-    private worlds: Map<string, Game.World>;
-    private renderedWorld: Game.World;
-
-    // Players
-    private players: Map<number, Game.Player>;
-    private myPlayerID: number;
-    private camera: Game.Camera;
+    // Scene
+    private sceneManager: SceneManager;
 
     // socket stuff
     private socket: WebSocket;
 
-    // other stuff
-    private movement: Game.Movement;
-
     constructor() {
-        this.manifestLoader = new PIXI.loaders.Loader();
         this.loader = PIXI.loader;
-
-        this.worlds = new Map();
-
-        this.players = new Map();
-        this.myPlayerID = -1;
     }
 
     public init() {
         this.createApplication();
 
+        this.sceneManager = new SceneManager(this.application.stage);
+
         const that = this;
         this.loadManifest(() => { // load the manifest
-            that.loadAssets(() => { // once it's loaded load all the other assets
+            this.sceneManager.loadManager(() => {
                 that.start();
             });
         });
@@ -49,6 +35,7 @@ export class Client {
         this.application = new PIXI.Application(256, 256, {
             antialias: true,
             resolution: 1,
+
             transparent: false,
         });
 
@@ -60,93 +47,76 @@ export class Client {
     }
 
     private loadManifest(cb: () => void) {
-        this.manifestLoader
+        this.loader
             .add("manifest", "manifest.json")
             .load(cb);
     }
 
-    private loadAssets(cb: () => void) {
-        let loader = this.loader;
-        const manifest = this.manifestLoader.resources.manifest.data;
-
-        for (const key of Object.keys(manifest)) {
-            const item = manifest[key];
-            loader = loader.add(key, item);
-
-            if (key.startsWith("tilemap/")) {
-                const worldName = key.slice("tilemap/".length);
-                this.worlds.set(worldName, new Game.World(worldName));
-            }
-        }
-
-        this.loader = loader.load(cb);
-    }
-
-    private setupGameKeyboard() { // This will get giant when we add more keybinds so we may want to change this
-        // don't send packets here directly
-        // just set variables to do that thing
-        // i.e movement or clicking a button, ect..
-        // this prevents sending a shit ton of packets
-
-        // movement keys
-        const keyLeft = new Game.Keyboard("ArrowLeft");
-        const keyUp = new Game.Keyboard("ArrowUp");
-        const keyRight = new Game.Keyboard("ArrowRight");
-        const keyDown = new Game.Keyboard("ArrowDown");
-        keyLeft.press = () => {
-            this.movement.left = true;
-        };
-        keyLeft.release = () => {
-            this.movement.left = false;
-        };
-        keyUp.press = () => {
-            this.movement.up = true;
-        };
-        keyUp.release = () => {
-            this.movement.up = false;
-        };
-        keyRight.press = () => {
-            this.movement.right = true;
-        };
-        keyRight.release = () => {
-            this.movement.right = false;
-        };
-        keyDown.press = () => {
-            this.movement.down = true;
-        };
-        keyDown.release = () => {
-            this.movement.down = false;
-        };
-    }
+    // private setupGameKeyboard() { // This will get giant when we add more keybinds so we may want to change this
+    //     // don't send packets here directly
+    //     // just set variables to do that thing
+    //     // i.e movement or clicking a button, ect..
+    //     // this prevents sending a shit ton of packets
+    //
+    //     // movement keys
+    //     const keyLeft = new Game.Keyboard("ArrowLeft");
+    //     const keyUp = new Game.Keyboard("ArrowUp");
+    //     const keyRight = new Game.Keyboard("ArrowRight");
+    //     const keyDown = new Game.Keyboard("ArrowDown");
+    //     keyLeft.press = () => {
+    //         this.movement.left = true;
+    //     };
+    //     keyLeft.release = () => {
+    //         this.movement.left = false;
+    //     };
+    //     keyUp.press = () => {
+    //         this.movement.up = true;
+    //     };
+    //     keyUp.release = () => {
+    //         this.movement.up = false;
+    //     };
+    //     keyRight.press = () => {
+    //         this.movement.right = true;
+    //     };
+    //     keyRight.release = () => {
+    //         this.movement.right = false;
+    //     };
+    //     keyDown.press = () => {
+    //         this.movement.down = true;
+    //     };
+    //     keyDown.release = () => {
+    //         this.movement.down = false;
+    //     };
+    // }
 
     private start() {
         // Add canvas to the document
         document.body.appendChild(this.application.view);
 
-        // load the worlds
-        for (const world of this.worlds.values()) {
-            world.load();
-        }
-
-        // setup camera
-        this.camera = new Game.Camera(this.application.renderer.width, this.application.renderer.height);
-
         // start the game and render loops
         this.application.ticker.add((delta) => this.gameLoop(delta));
         this.application.ticker.add((delta) => this.renderLoop(delta));
 
-        // TODO: instead of console logging we need to have a loading UI or something
+        // stop the shared ticker
+        PIXI.ticker.shared.stop();
+
         // load auth cookie
         const cookie = Cookies.get("namelessmmo_auth-session");
+
+        if (cookie === undefined) {
+            this.sceneManager.loadScene.setMessage(-1, "You are not logged into NamelessMMO");
+            return;
+        }
+
         const cookieData = JSON.parse(cookie);
         const authData = cookieData.authenticated;
         if (authData.hasOwnProperty("access_token") === false) {
-            console.log("not logged in");
+            this.sceneManager.loadScene.setMessage(-1, "You are not logged into NamelessMMO");
             return;
         }
 
         if (authData.expires_at < Date.now()) {
-            console.log("token expired");
+            this.sceneManager.loadScene.setMessage(-1, "Your login session expired, please login again.");
             return;
         }
         const accessToken = authData.access_token;
@@ -155,6 +125,7 @@ export class Client {
     }
 
     private connect(accessToken: string) {
+        this.sceneManager.loadScene.setMessage(0, "Connecting...");
         const loc = window.location;
         let newUri;
         if (loc.protocol === "https:") {
@@ -168,7 +139,8 @@ export class Client {
         this.socket = new WebSocket(newUri);
         this.socket.onopen = (evt) => {
             // send login info
-            console.log("sending loging info");
+            that.sceneManager.socket = that.socket;
+            that.sceneManager.loadScene.setMessage(200, "Logging in...");
             const loginData = JSON.stringify({
                 code: "PlayerLogin",
                 data: {
@@ -181,6 +153,12 @@ export class Client {
             });
             that.socket.send(loginData);
         };
+        this.socket.onerror = (evt) => {
+            that.sceneManager.loadScene.setMessage(-1, "Error connecting to Realm");
+        };
+        this.socket.onclose = (evt) => {
+            console.log("websocket closed");
+        };
         this.socket.onmessage = (evt) => {
             const evtData = JSON.parse(evt.data);
             const code = evtData.code;
@@ -191,121 +169,27 @@ export class Client {
 
     private processIncomingPackets(code: string, data: any) {
         switch (code) {
-            case "PlayerInfo":
-                this.myPlayerID = data.player_id;
-                this.movement = new Game.Movement();
-                console.log("My Player ID ", this.myPlayerID);
-                this.setupGameKeyboard();
-                break;
-            case "LocalPlayerState":
-                const dataPlayers = data.players;
-                const dataPlayerIDs = new Array<number>();
-                for (const dataPlayer of dataPlayers) {
-                    // const dataPlayer = dataPlayers[i];
-                    const dataPlayerLocation = dataPlayer.location;
-                    dataPlayerIDs.push(dataPlayer.id);
-
-                    if (this.players.has(dataPlayer.id)) {
-                        // player is already in the player map
-                        // TODO: if a player leaves and another joins faster than the state update this will still be
-                        //  the old player
-                        // we probably want some sort of other identifier
-                        // or like it doesn't matter because this player object will magically be moved (and gfx set)
-                        // to the new player
-                        const player = this.players.get(dataPlayer.id);
-                        // location has immutable fields so we need to create a new one
-                        // TODO: use dataPlayerLocation.world for the name of the world
-                        player.location = new Game.Location(dataPlayerLocation.x, dataPlayerLocation.y,
-                            this.worlds.get(dataPlayerLocation.world));
-                        // re-set the player in the map
-                        this.players.set(player.id, player);
-                    } else {
-                        // this is a new player
-                        const player = new Game.Player(dataPlayer.id);
-                        // TODO: use dataPlayerLocation.world for the name of the world
-                        player.location = new Game.Location(dataPlayerLocation.x, dataPlayerLocation.y,
-                            this.worlds.get(dataPlayerLocation.world));
-                        this.players.set(player.id, player);
-                    }
-                }
-
-                // remove players that are no longer in the state
-                for (const pid of this.players.keys()) {
-                    if (!dataPlayerIDs.includes(pid)) {
-                        const player = this.players.get(pid);
-                        player.unRender(this.application.stage);
-                        this.players.delete(player.id);
-                    }
-                }
-                break;
             case "Ping":
                 // This should rarely if ever be used due to other packets being constantly sent
+                // TODO: do we need to send a pong back?
+                break;
+            case "PlayerDisconnect":
+                this.sceneManager.loadScene.setMessage(data.code, data.message);
+                this.sceneManager.setScene(null);
                 break;
             default:
-                console.log("invalid code: ", code);
+                this.sceneManager.processPackets(code, data);
                 break;
         }
     }
 
     private gameLoop(delta: number) {
-        if (this.myPlayerID === -1) {
-            return;
-        }
-
-        if (this.players.has(this.myPlayerID) === false) {
-            return;
-        }
-
-        if (this.movement.isMoving()) {
-            this.socket.send(JSON.stringify({
-                code: "PlayerMove",
-                data: {
-                    down: this.movement.down,
-                    left: this.movement.left,
-                    right: this.movement.right,
-                    up: this.movement.up,
-                },
-            }));
-        }
-
+        this.sceneManager.update();
     }
 
     private renderLoop(delta: number) {
-        if (this.myPlayerID === -1) {
-            return;
-        }
-
-        if (this.players.has(this.myPlayerID) === false) {
-            return;
-        }
-
-        // Going to draw everything relative to myPlayer
-        const myPlayer = this.players.get(this.myPlayerID);
-        const myPlayerLocation = myPlayer.location;
-        const myPlayerWorld = myPlayerLocation.world;
-        this.camera.update(myPlayerLocation); // constantly update the camera location
-
-        // render the world at the player location
-        if (this.renderedWorld !== myPlayerWorld) {
-            if (this.renderedWorld != null) {
-                this.renderedWorld.unRender();
-            }
-            this.renderedWorld = myPlayerWorld;
-        }
-        myPlayer.location.world.render(this.application.stage, myPlayerLocation, this.camera);
-
-        // TODO: render ground items here
-
-        for (const pid of this.players.keys()) {
-            if (pid !== this.myPlayerID) {
-                const player = this.players.get(pid);
-                player.render(this.application.stage, myPlayerLocation, this.camera);
-            }
-        }
-        // render self last so we stay on top
-        myPlayer.render(this.application.stage, myPlayerLocation, this.camera);
-
-        // TODO: render interface stuff here
+        // TODO: support scaling to the browser size
+        this.sceneManager.render(this.application.renderer.width, this.application.renderer.height);
     }
 
 }

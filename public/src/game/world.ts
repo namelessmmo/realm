@@ -7,10 +7,10 @@ export class World {
     public readonly tilemap: tilemap.Tilemap;
     private readonly container: PIXI.Container;
 
-    constructor(tileMapName: string) {
+    constructor(tileMapName: string, loader: PIXI.loaders.Loader) {
         this.container = new PIXI.Container();
 
-        this.tilemap = new tilemap.Tilemap(tileMapName);
+        this.tilemap = new tilemap.Tilemap(tileMapName, loader);
     }
 
     public load() {

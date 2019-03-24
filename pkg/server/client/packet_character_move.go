@@ -1,20 +1,24 @@
 package client
 
-type PlayerMove struct {
+type CharacterMove struct {
 	Up    bool `mapstructure:"up"`
 	Down  bool `mapstructure:"down"`
 	Left  bool `mapstructure:"left"`
 	Right bool `mapstructure:"right"`
 }
 
-func (packet *PlayerMove) Handle(client *Client) error {
-	if client.movement != nil {
+func (packet *CharacterMove) Handle(client *Client) error {
+	character := client.GetCharacter()
+	if character == nil {
+		// Someone is being dump and trying to move without a character
+		return nil
+	}
+
+	if character.movement != nil {
 		// There already is a movement so wait for it to process
 		return nil
 	}
-	client.movementLock.Lock()
-	defer client.movementLock.Unlock()
-	client.movement = &Movement{
+	character.movement = &Movement{
 		Up:    packet.Up,
 		Down:  packet.Down,
 		Left:  packet.Left,

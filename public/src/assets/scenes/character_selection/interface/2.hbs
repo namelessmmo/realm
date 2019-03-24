@@ -1,0 +1,76 @@
+{{!-- Character selection interface --}}
+<div id="interface-2">
+    <style>
+        .position {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .window {
+            width: 40vmin;
+            height: 40vmin;
+            border-radius: 1.5vmin;
+            border-style: solid;
+            border-color: #33271c;
+            border-width: 0.5vmin;
+            position: relative;
+            background-color: #ffcc93;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .window > div {
+            width: calc(100% - 1vmin);
+            height: calc(100% - 1vmin);
+            background-color: #ffc482;
+            position: absolute;
+            border-radius: 0.5vmin;
+        }
+
+        .character {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #80cbc4;
+            border-radius: 0.5vmin;
+            text-align: center;
+        }
+
+        *[data-button-id] {
+            /*Set the mouse to indicate a button*/
+            cursor: pointer;
+
+            /*Disable selecting the button text*/
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        div[data-character="-1"] {
+            background-color: green;
+        }
+    </style>
+
+    <div class="position">
+        <div class="window">
+            <div>
+                <div style="position: relative;display: grid;grid-template-columns: auto auto auto; grid-auto-rows: auto; grid-gap: 1vh; min-height: 100%; min-width: 100%; max-height: 100%; max-width: 100%">
+                    {{#each characters}}
+                        {{#if this}}
+                            <div class="character" data-button-id="{{@index}}"
+                                 data-character="{{this.characterID}}">{{this.characterID}}</div>
+                        {{else}}
+                            <div class="character" data-button-id="{{@index}}" data-character="-1">New <br/>Character
+                            </div>
+                        {{/if}}
+                    {{/each}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

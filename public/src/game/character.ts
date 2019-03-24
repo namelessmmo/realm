@@ -2,30 +2,20 @@ import * as PIXI from "pixi.js";
 import { Camera } from "./camera";
 import { Location } from "./location";
 
-export class Player {
-    public id: number;
+export class Character {
+    public playerID: number;
+    public characterID: number;
     public location: Location;
     public graphic: PIXI.Graphics;
 
-    constructor(id: number) {
-        this.id = id;
+    constructor(playerID: number, characterID: number) {
+        this.playerID = playerID;
+        this.characterID = characterID;
     }
 
     public render(stage: PIXI.Container, relativeLocation: Location, camera: Camera) {
         if (!this.graphic) {
-            // eventually this will be the player gfx instead of just a circle
-            // probably with body part ids, equipment ids, ect..
-            const circle = new PIXI.Graphics();
-            // if (player.id === myPlayerID) {
-            //     circle.beginFill(0x0000FF);
-            // } else {
-            //     circle.beginFill(0x00FF00);
-            // }
-            circle.beginFill(0x00FF00);
-            circle.drawCircle(0, 0, 10);
-            circle.endFill();
-            this.graphic = circle;
-            stage.addChild(this.graphic);
+            this.createGraphic();
         }
 
         const centerX = camera.screenWidth / 2;
@@ -72,9 +62,32 @@ export class Player {
 
         this.graphic.x = screenX;
         this.graphic.y = screenY;
+
+        try {
+            stage.getChildIndex(this.graphic);
+        } catch (e) {
+            stage.addChild(this.graphic);
+        }
     }
 
     public unRender(stage: PIXI.Container) {
         stage.removeChild(this.graphic);
+        this.graphic.destroy({children: true});
+        this.graphic = null;
+    }
+
+    private createGraphic() {
+        // eventually this will be the player gfx instead of just a circle
+        // probably with body part ids, equipment ids, ect..
+        const circle = new PIXI.Graphics();
+        // if (player.id === myPlayerID) {
+        //     circle.beginFill(0x0000FF);
+        // } else {
+        //     circle.beginFill(0x00FF00);
+        // }
+        circle.beginFill(0x00FF00);
+        circle.drawCircle(0, 0, 10);
+        circle.endFill();
+        this.graphic = circle;
     }
 }

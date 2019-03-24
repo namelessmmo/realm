@@ -65,6 +65,18 @@ module.exports = {
         }
       },
       {
+        test: /\.hbs$/,
+        loader: 'file-loader',
+        options: {
+          outputPath: (url, resourcePath, context) => {
+            const publicPrefix = "public/src/";
+            let relativePath = path.relative(context, resourcePath).slice(publicPrefix.length);
+            relativePath = relativePath.substring(0, relativePath.lastIndexOf("/"));
+            return `${relativePath}/${url}`
+          },
+        }
+      },
+      {
         type: 'javascript/auto', // prevents parsing json files
         test: /\.json$/,
         loader: 'file-loader',

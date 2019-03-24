@@ -1,3 +1,4 @@
 import { Client } from "./client";
 
-new Client().init();
+const client = new Client();
+client.init();

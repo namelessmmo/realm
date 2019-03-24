@@ -10,7 +10,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/namelessmmo/realm/pkg/server/packets/outgoing"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -34,16 +33,19 @@ type PacketHandler struct {
 
 	readLock sync.Mutex
 	lastPing time.Time
+
+	closed bool
 }
 
 func NewPacketHandler(connection *websocket.Conn) *PacketHandler {
 	return &PacketHandler{
 		connection: connection,
 		sendBuffer: make(chan outgoing.OutgoingPacket, 64),
+		closed:     false,
 	}
 }
 
-func (handler *PacketHandler) setup() {
+func (handler *PacketHandler) Setup() {
 	handler.connection.SetReadLimit(1024) // TODO: figure out the correct size
 	handler.connection.SetPongHandler(func(appData string) error {
 		_ = handler.connection.SetReadDeadline(time.Now().Add(pongWait))
@@ -55,38 +57,52 @@ func (handler *PacketHandler) WritePacket(packet outgoing.OutgoingPacket) {
 	handler.sendBuffer <- packet
 }
 
-func (handler *PacketHandler) Close(closeCode int, text string) error {
+func (handler *PacketHandler) close(closeCode int, text string) {
 	handler.closeData = websocket.FormatCloseMessage(closeCode, text)
 	close(handler.sendBuffer)
-	return nil
 }
 
-func (handler *PacketHandler) ProcessOutgoingPackets() {
+func (handler *PacketHandler) ProcessOutgoingPackets() bool {
+	if handler.closed {
+		return false
+	}
+
 	select {
 	case packet, ok := <-handler.sendBuffer:
 		_ = handler.connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		if !ok {
 			// send channel was closed, client needs to be disconnected
 			_ = handler.connection.WriteMessage(websocket.CloseMessage, handler.closeData)
-			return
+			_ = handler.connection.Close()
+			handler.closed = true
+			return false
 		}
 
 		// write the current packet
-		_ = handler.connection.WriteJSON(map[string]interface{}{"code": reflect.TypeOf(packet).Elem().Name(), "data": packet})
+		packetName := reflect.TypeOf(packet).Elem().Name()
+		_ = handler.connection.WriteJSON(map[string]interface{}{"code": packetName, "data": packet})
+		if packetName == "PlayerDisconnect" {
+			handler.close(websocket.CloseNormalClosure, "Player Disconnecting")
+			break
+		}
 	default:
 		if time.Now().Before(handler.lastPing.Add(pingPeriod)) {
-			return
+			break
 		}
 
 		handler.lastPing = time.Now()
 		handler.WritePacket(&outgoing.Ping{})
 	}
+
+	return true
 }
 
 func (handler *PacketHandler) ReadRawPacket(timeout time.Duration) (*RawIncomingPacket, error) {
 	defer func() {
 		handler.readLock.Unlock()
-		_ = handler.connection.SetReadDeadline(time.Time{})
+		if timeout.Seconds() > 0 {
+			_ = handler.connection.SetReadDeadline(time.Time{})
+		}
 	}()
 	handler.readLock.Lock()
 	if timeout.Seconds() > 0 {
@@ -110,21 +126,33 @@ func (handler *PacketHandler) ReadRawPacket(timeout time.Duration) (*RawIncoming
 func (handler *PacketHandler) processIncomingPackets(client *Client) error {
 	packet, err := handler.ReadRawPacket(-1)
 	if err != nil {
+		if client.Disconnecting {
+			return nil
+		}
+
 		return errors.Wrap(err, "Error reading packet")
 	}
 
+	// TODO: only process packets that were sent once a frame or less (60/1000ms)
+	//  what do we do with packets sent faster than that?
+
 	switch packet.Code {
-	case reflect.TypeOf(PlayerMove{}).Name():
-		playerMove := &PlayerMove{}
+	case reflect.TypeOf(CharacterMove{}).Name():
+		playerMove := &CharacterMove{}
 		err := mapstructure.Decode(packet.Data, playerMove)
 		if err != nil {
-			return errors.Wrap(err, "Error decoding PlayerMove")
+			return errors.Wrap(err, "Error decoding CharacterMove")
 		}
-		_ = playerMove.Handle(client)
+		return playerMove.Handle(client)
+	case reflect.TypeOf(InterfaceButtonClick{}).Name():
+		interfaceButtonClick := &InterfaceButtonClick{}
+		err := mapstructure.Decode(packet.Data, interfaceButtonClick)
+		if err != nil {
+			return errors.Wrap(err, "Error decoding InterfaceButtonClick")
+		}
+		return interfaceButtonClick.Handle(client)
 	default:
-		logrus.Errorf("Unknown Packet code: %s: %s", packet.Code, packet.Data)
+		client.Log.Errorf("Unknown Packet code: %s: %s", packet.Code, packet.Data)
 		return errors.Errorf("Unknown Packet code: %s", packet.Code)
 	}
-
-	return nil
 }

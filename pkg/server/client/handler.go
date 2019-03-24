@@ -6,10 +6,7 @@ import (
 	"time"
 
 	"github.com/namelessmmo/realm/pkg/server/location"
-
 	"github.com/namelessmmo/realm/pkg/server/packets/outgoing"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
 
@@ -18,7 +15,7 @@ import (
 
 const MaxClients = 100
 
-const tickRate = (1000 / 60) * time.Millisecond
+const tickRate = (1000 / 60) * time.Millisecond // half of a frame at 60 frames
 
 type Handler struct {
 	HMACString string
@@ -64,26 +61,25 @@ func (handler *Handler) addClient(conn *websocket.Conn) {
 	if id == -1 {
 		// Close the connection because we are full
 		_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseTryAgainLater, ""))
+		_ = conn.Close()
 		return
 	}
 
 	// Create the client
 	client := NewClient(conn, id, handler)
 
-	// Set close handlers
-	conn.SetCloseHandler(nil)           // set a nil close handler
-	closeHandler := conn.CloseHandler() // get the nil close handler
+	closeHandler := conn.CloseHandler() // get the existing close handler
 	conn.SetCloseHandler(func(code int, text string) error {
-		logrus.Infof("Connection Closed")
-		handler.removeClient(client.ID)
-		return closeHandler(code, text) // call the nil close handler
+		client.Disconnect(499, "Client disconnected")
+		return closeHandler(code, text) // call the existing close handler
 	})
+
+	// Set the client
+	handler.clients[id] = client
 
 	// Start the client
 	go client.Run()
 
-	// Set the client
-	handler.clients[id] = client
 }
 
 func (handler *Handler) removeClient(id int) {
@@ -112,10 +108,7 @@ func (handler *Handler) process() {
 			if client == nil {
 				continue
 			}
-			if client.Disconnected == true {
-				continue
-			}
-			if client.Initialized == false {
+			if client.Disconnecting == true {
 				continue
 			}
 
@@ -134,14 +127,15 @@ func (handler *Handler) packets() {
 			if client == nil {
 				continue
 			}
-			if client.Disconnected == true {
+
+			if client.PacketHandler.ProcessOutgoingPackets() == false && client.Disconnected == true {
 				handler.removeClient(client.ID)
-				continue
 			}
-			client.PacketHandler.ProcessOutgoingPackets()
 		}
 
-		time.Sleep(tickRate)
+		// Process outgoing packets as fast as we can
+		// things will only write if there is stuff in the buffer
+		// or a ping
 	}
 }
 
@@ -152,14 +146,15 @@ func (handler *Handler) state() {
 			if myClient == nil {
 				continue
 			}
-			if myClient.Disconnected == true {
+			if myClient.Disconnecting == true {
 				continue
 			}
-			if myClient.Initialized == false {
+			myCharacter := myClient.GetCharacter()
+			if myCharacter == nil {
 				continue
 			}
-			statePacket := &outgoing.LocalPlayerState{
-				Players: make([]outgoing.PlayerState, 0),
+			statePacket := &outgoing.LocalCharacterState{
+				Characters: make([]outgoing.CharacterState, 0),
 			}
 
 			myCamera := myClient.Camera
@@ -172,14 +167,15 @@ func (handler *Handler) state() {
 				if client == nil {
 					continue
 				}
-				if client.Disconnected == true {
+				if client.Disconnecting == true {
 					continue
 				}
-				if client.Initialized == false {
+				character := client.GetCharacter()
+				if character == nil {
 					continue
 				}
 
-				clientLoc := client.GetLocation()
+				clientLoc := character.GetLocation()
 				if clientLoc.GetWorld().Name != world.Name {
 					continue
 				}
@@ -189,12 +185,15 @@ func (handler *Handler) state() {
 				if clientLoc.GetX() > bottomRight.GetX() || clientLoc.GetY() > bottomRight.GetY() {
 					continue
 				}
-				statePacket.Players = append(statePacket.Players, outgoing.PlayerState{ID: client.ID, Location: outgoing.PlayerStateLocation{World: clientLoc.GetWorld().Name, X: clientLoc.GetX(), Y: clientLoc.GetY()}})
+				statePacket.Characters = append(statePacket.Characters, outgoing.CharacterState{ID: character.ID, PlayerID: client.ID, Location: outgoing.CharacterStateLocation{World: clientLoc.GetWorld().Name, X: clientLoc.GetX(), Y: clientLoc.GetY()}})
 			}
 
 			myClient.PacketHandler.WritePacket(statePacket)
 		}
 
+		// send a state update every frame
+		// the local player has prediction so this won't be laggy locally
+		// it may be laggy for the remote players
 		time.Sleep(tickRate)
 	}
 }
