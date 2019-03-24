@@ -72,6 +72,8 @@ export class Play extends Scene {
                         this.localCharacters.delete(character.playerID);
                     }
                 }
+
+                this.setLoaded();
                 break;
             default:
                 console.log(`Unknown packet ${code} for scene ${this.name}`);
@@ -176,7 +178,12 @@ export class Play extends Scene {
         }
         this.movement = new Movement();
         this.setupGameKeyboard();
-        this.setLoaded();
+        this.socket.send(JSON.stringify({
+            code: "DoneLoading",
+            data: {
+                what: this.name,
+            },
+        }));
     }
 
     private setupGameKeyboard() { // This will get giant when we add more keybinds so we may want to change this

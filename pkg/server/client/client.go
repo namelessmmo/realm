@@ -309,21 +309,6 @@ func (c *Client) Disconnect(code int, message string) {
 }
 
 func (c *Client) Process() {
-	if c.CharacterToLoad != nil {
-		character := c.CharacterToLoad
-		c.CharacterToLoad = nil
-		go func() {
-			err := character.Load()
-			if err != nil {
-				character.Log.WithError(err).Errorf("Error loading character")
-				c.Disconnect(http.StatusInternalServerError, "Error loading character")
-				return
-			}
-			c.Character = character
-		}()
-		return
-	}
-
 	if c.Character != nil {
 		c.Character.Process()
 	}

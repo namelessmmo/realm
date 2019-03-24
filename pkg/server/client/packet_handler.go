@@ -151,6 +151,13 @@ func (handler *PacketHandler) processIncomingPackets(client *Client) error {
 			return errors.Wrap(err, "Error decoding InterfaceButtonClick")
 		}
 		return interfaceButtonClick.Handle(client)
+	case reflect.TypeOf(DoneLoading{}).Name():
+		doneLoading := &DoneLoading{}
+		err := mapstructure.Decode(packet.Data, doneLoading)
+		if err != nil {
+			return errors.Wrap(err, "Error decoding DoneLoading")
+		}
+		return doneLoading.Handle(client)
 	default:
 		client.Log.Errorf("Unknown Packet code: %s: %s", packet.Code, packet.Data)
 		return errors.Errorf("Unknown Packet code: %s", packet.Code)

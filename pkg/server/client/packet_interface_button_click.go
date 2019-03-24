@@ -17,10 +17,20 @@ func (packet *InterfaceButtonClick) Handle(client *Client) error {
 	client.Log.Infof("Button Clicked %v:%v", packet.InterfaceID, packet.ButtonID)
 	switch packet.InterfaceID {
 	case 2:
+		if client.Character != nil {
+			// client tried to select a character while one is already loaded
+			return nil
+		}
+
 		character := client.Characters[packet.ButtonID]
 		if character == nil {
 			//TODO: open character creation interface
 		} else {
+			if client.CharacterToLoad != nil {
+				// client already selected a character and we are still loading that
+				return nil
+			}
+
 			client.CharacterToLoad = character
 			client.PacketHandler.WritePacket(&outgoing.CharacterLoading{CharacterID: character.ID})
 			client.Log.WithField("character_id", character.ID).Info("Client selected character")
